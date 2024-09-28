@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Braille Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: url('bg2.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+            text-align: center;
+        }
+        nav {
+            width: 100%;
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.8);
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 20px;
+            margin: 0 20px;
+            font-weight: bold;
+            padding: 10px;
+            display: inline-block;
+        }
+        nav a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+        }
+        .container {
+            width: 80%;
+            max-width: 600px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+            margin-top: 100px;
+        }
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        .drag-area {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background-color 0.3s ease;
+        }
+        .drag-area:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        #fileInput {
+            display: none;
+        }
+        .braille-output {
+            font-size: 24px;
+            white-space: pre-wrap;
+            margin-top: 20px;
+            color: #000;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-wrap: break-word;
+            line-height: 1.5;
+            display: inline-block;
+            text-align: left;
+        }
+        .braille-dot {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background-color: #000;
+            border-radius: 50%;
+            margin: 2px;
+        }
+        .controls {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .controls label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 18px;
+        }
+        .controls input[type="color"], .controls input[type="range"] {
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: rgba(255, 255, 255, 0.8);
+            color: #000;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="upload.html">Braille Converter</a>
+    </nav>
+    <div class="container">
+        <h1>Braille Converter</h1>
+        <div class="drag-area" onclick="document.getElementById('fileInput').click()">
+            Drag & Drop or Click to Select Your File
+        </div>
+        <input type="file" id="fileInput" accept=".txt">
+        <div class="controls">
+            <label for="colorPicker">Choose Braille Cell Color:</label>
+            <input type="color" id="colorPicker" value="#000000">
+            <label for="sizeRange">Adjust Braille Cell Size:</label>
+            <input type="range" id="sizeRange" min="16" max="72" value="24">
+        </div>
+        <button onclick="convertToBraille()">Convert to Braille</button>
+        <div id="result" class="braille-output"></div>
+        <button onclick="downloadBraille()" style="display:none;" id="downloadBtn">Download Braille File</button>
+        <button onclick="downloadPDF()" style="display:none;" id="pdfBtn">Download as PDF</button>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const colorPicker = document.getElementById('colorPicker');
+        const sizeRange = document.getElementById('sizeRange');
+        const resultDiv = document.getElementById('result');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const pdfBtn = document.getElementById('pdfBtn');
+
+        const brailleMap = {
+            'a': '⠁', 'b': '⠃', 'c': '⠉', 'd': '⠙', 'e': '⠑', 'f': '⠋', 'g': '⠛', 'h': '⠓',
+            'i': '⠊', 'j': '⠚', 'k': '⠅', 'l': '⠇', 'm': '⠍', 'n': '⠝', 'o': '⠕', 'p': '⠏',
+            'q': '⠟', 'r': '⠗', 's': '⠎', 't': '⠞', 'u': '⠥', 'v': '⠧', 'w': '⠺', 'x': '⠭',
+            'y': '⠽', 'z': '⠵', '0': '⠴', '1': '⠂', '2': '⠆', '3': '⠒', '4': '⠲', '5': '⠢',
+            '6': '⠖', '7': '⠷', '8': '⠸', '9': '⠔', '.': '⠲', ',': '⠂', '?': '⠦', '!': '⠖',
+            '(': '⠷', ')': '⠾', '@': '⠈', '&': '⠯', '/': '⠌', ' ': ' ',
+        };
+
+        fileInput.addEventListener('change', handleFile);
+
+        function handleFile() {
+            const file = fileInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const text = e.target.result;
+                    displayBraille(text);
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function displayBraille(text) {
+            const brailleText = text.split('').map(char => brailleMap[char.toLowerCase()] || char).join('');
+            resultDiv.innerHTML = brailleText.split('').map(char => {
+                if (char === ' ') return ' ';
+                return `<span class="braille-dot" style="background-color: ${colorPicker.value}; width: ${sizeRange.value}px; height: ${sizeRange.value}px;"></span>`;
+            }).join('');
+            downloadBtn.style.display = 'inline-block';
+            pdfBtn.style.display = 'inline-block';
+        }
+
+        function convertToBraille() {
+            const text = resultDiv.innerText;
+            displayBraille(text);
+        }
+
+        function downloadBraille() {
+            const brailleText = resultDiv.innerText;
+            const blob = new Blob([brailleText], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'braille.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const brailleText = resultDiv.innerText.replace(/\n/g, '\r\n'); // Handle new lines
+            doc.text(brailleText, 10, 10);
+            doc.save('braille.pdf');
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.6.0/jspdf.umd.min.js"></script>
+</body>
+</html>
+

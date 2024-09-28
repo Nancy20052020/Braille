@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Reader</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: url('bg1.jpg') no-repeat center center fixed;
+            background-size: cover;
+            margin: 0;
+            color: #ffffff;
+        }
+
+        nav {
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        nav ul li {
+            margin: 0 20px;
+        }
+
+        nav ul li a {
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 18px;
+            transition: color 0.3s;
+            font-weight: bold;
+        }
+
+        nav ul li a:hover {
+            color: #007bff;
+        }
+
+        .container {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.5);
+            max-width: 600px;
+            margin: 100px auto;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        label {
+            background-color: #61dafb;
+            color: #282c34;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        label:hover {
+            background-color: #21a1f1;
+        }
+
+        #read-button {
+            margin-top: 20px;
+            background-color: #21a1f1;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        #read-button:hover {
+            background-color: #1d86d0;
+        }
+
+        #text-output {
+            margin-top: 20px;
+            background-color: #444c56;
+            padding: 15px;
+            border-radius: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 1rem;
+            text-align: left;
+            color: #ffffff;
+        }
+
+        .image-container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .image-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+
+        .image-description {
+            margin-top: 10px;
+            font-size: 1rem;
+            color: #ffffff;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="braille.html">Braille Converter</a></li>
+            <li><a href="notepad.html">Notepad</a></li>
+            <li><a href="read.html">Read</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>Document Reader</h1>
+        <input type="file" id="file-input" accept=".pdf,.txt,.doc,.docx,.jpg,.jpeg,.png" />
+        <label for="file-input">Choose a file</label>
+        <button id="read-button">Read Aloud</button>
+        <div id="text-output"></div>
+        <div class="image-container" id="image-container" style="display: none;">
+            <img id="uploaded-image" src="" alt="Uploaded Image" />
+            <div id="image-description" class="image-description"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const textOutput = document.getElementById('text-output');
+        const readButton = document.getElementById('read-button');
+        const imageContainer = document.getElementById('image-container');
+        const uploadedImage = document.getElementById('uploaded-image');
+        const imageDescription = document.getElementById('image-description');
+
+        let fileContent = '';
+        let imageFile = null;
+
+        fileInput.addEventListener('change', handleFile);
+
+        function handleFile(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            if (file.type === 'application/pdf') {
+                reader.onload = function (e) {
+                    const pdfData = new Uint8Array(e.target.result);
+                    const loadingTask = pdfjsLib.getDocument({ data: pdfData });
+                    loadingTask.promise.then(function (pdf) {
+                        pdf.getPage(1).then(function (page) {
+                            page.getTextContent().then(function (textContent) {
+                                fileContent = textContent.items.map(item => item.str).join(' ');
+                                textOutput.textContent = fileContent;
+                            });
+                        });
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                reader.onload = function (e) {
+                    mammoth.extractRawText({ arrayBuffer: e.target.result })
+                        .then(result => {
+                            fileContent = result.value;
+                            textOutput.textContent = fileContent;
+                        })
+                        .catch(error => {
+                            console.error(error);
+                            textOutput.textContent = 'An error occurred while processing the .docx file.';
+                        });
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (file.type === 'text/plain') {
+                reader.onload = function (e) {
+                    fileContent = e.target.result;
+                    textOutput.textContent = fileContent;
+                };
+                reader.readAsText(file);
+            } else if (file.type.startsWith('image/')) {
+                imageFile = file;
+                const url = URL.createObjectURL(file);
+                uploadedImage.src = url;
+                imageContainer.style.display = 'flex';
+                describeImage(file);
+            } else {
+                alert('Unsupported file type');
+            }
+        }
+
+        async function describeImage(file) {
+            const subscriptionKey = 'YOUR_AZURE_COMPUTER_VISION_API_KEY'; // Replace with your Azure API key
+            const endpoint = 'YOUR_AZURE_COMPUTER_VISION_ENDPOINT'; // Replace with your Azure endpoint
+            const url = `${endpoint}/vision/v3.1/describe`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Ocp-Apim-Subscription-Key': subscriptionKey,
+                        'Content-Type': 'application/octet-stream'
+                    },
+                    body: file
+                });
+
+                const result = await response.json();
+                if (result.description && result.description.captions.length > 0) {
+                    imageDescription.textContent = result.description.captions[0].text;
+                } else {
+                    imageDescription.textContent = 'No description available.';
+                }
+            } catch (error) {
+                console.error('Error describing image:', error);
+                imageDescription.textContent = 'Error describing image.';
+            }
+        }
+
+        readButton.addEventListener('click', () => {
+            if (fileContent) {
+                const utterance = new SpeechSynthesisUtterance(fileContent);
+                speechSynthesis.speak(utterance);
+            } else {
+                alert('Please select a file first');
+            }
+        });
+    </script>
+</body>
+
+</html>
+

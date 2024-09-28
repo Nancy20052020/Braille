@@ -1,0 +1,36 @@
+/* Existing styles */
+
+.drop-area {
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    position: relative;
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.drop-area p {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+#fileElem {
+    display: none;
+}
+
+.convert-btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.convert-btn:hover {
+    background-color: #0056b3;
+}
+

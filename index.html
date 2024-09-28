@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Page</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            color: #fff;
+            background: url('bg1.jpg') no-repeat center center fixed;
+            background-size: cover;
+            overflow-x: hidden;
+        }
+
+        header {
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        nav ul li {
+            margin: 0 20px;
+        }
+
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 18px;
+            transition: color 0.3s;
+        }
+
+        nav ul li a:hover {
+            color: #007bff;
+        }
+
+        main {
+            padding-top: 100px; /* Adjusted for fixed header */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+
+        .typewriter {
+            font-size: 28px;
+            font-weight: bold;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px 30px;
+            border-radius: 15px;
+            display: inline-block;
+            white-space: nowrap;
+            overflow: hidden;
+            border: 2px solid #00d9ff;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            color: #00d9ff;
+            animation: glow 1.5s infinite alternate;
+        }
+
+        @keyframes glow {
+            0% {
+                box-shadow: 0 0 5px #00d9ff, 0 0 10px #00d9ff, 0 0 15px #00d9ff, 0 0 20px #00d9ff;
+            }
+            100% {
+                box-shadow: 0 0 20px #00d9ff, 0 0 25px #00d9ff, 0 0 30px #00d9ff, 0 0 40px #00d9ff;
+            }
+        }
+
+        @media (max-width: 768px) {
+            nav ul li {
+                margin: 0 10px;
+            }
+
+            .typewriter {
+                font-size: 22px;
+                padding: 15px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="braille.html">Braille Converter</a></li>
+                <li><a href="notepad.html">Notepad</a></li>
+                <li><a href="read.html">Read</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <div id="typewriter" class="typewriter"></div>
+    </main>
+    <script>
+        const statements = [
+            'Welcome to the Braille Converter!',
+            'Upload your text files to convert them to Braille.',
+            'Or use our Notepad to write and convert text directly.',
+            'Explore the possibilities of accessible content!'
+        ];
+
+        let currentStatement = 0;
+        let currentChar = 0;
+        const typewriter = document.getElementById('typewriter');
+
+        function type() {
+            if (currentChar < statements[currentStatement].length) {
+                typewriter.textContent += statements[currentStatement].charAt(currentChar);
+                currentChar++;
+                setTimeout(type, 80);
+            } else {
+                currentStatement++;
+                if (currentStatement < statements.length) {
+                    setTimeout(() => {
+                        typewriter.textContent = '';
+                        currentChar = 0;
+                        type();
+                    }, 2000);
+                }
+            }
+        }
+
+        type();
+    </script>
+</body>
+</html>
+

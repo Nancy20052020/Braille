@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notepad - Braille Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Navbar Styles */
+        header {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
+
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        nav ul li {
+            margin: 0 20px;
+        }
+
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 18px;
+            transition: color 0.3s;
+        }
+
+        nav ul li a:hover {
+            color: #007bff;
+        }
+
+        /* Main Container */
+        .container {
+            display: flex;
+            flex: 1;
+            padding: 100px 20px 20px 20px; /* Top padding adjusted for fixed header */
+            gap: 20px;
+            overflow: auto;
+        }
+
+        .text-area,
+        .braille-output {
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            flex: 1;
+        }
+
+        .text-area textarea {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            resize: none;
+            font-size: 16px;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #f8f8f8;
+        }
+
+        .braille-output {
+            font-size: var(--cell-size, 30px);
+            overflow: auto;
+            background-color: #f8f8f8;
+            white-space: pre-wrap; /* Preserve whitespace */
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .braille-output span {
+            display: inline-block;
+            font-size: inherit;
+            line-height: 1.1;
+            text-align: center;
+        }
+
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 10px;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .side-panel button {
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .side-panel button.active {
+            background-color: #28a745;
+        }
+
+        .side-panel button:hover {
+            background-color: #0056b3;
+        }
+
+        .side-panel input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <header>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="braille.html">Braille Converter</a></li>
+                <li><a href="notepad.html">Notepad</a></li>
+                <li><a href="read.html">Read</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Text Area -->
+        <div class="text-area">
+            <textarea id="text-input" placeholder="Write your text here..."></textarea>
+        </div>
+
+        <!-- Side Panel -->
+        <div class="side-panel">
+            <button id="voice-btn">Start Voice Input</button>
+            <button id="convert-btn">Convert to Braille</button>
+            <button id="download-btn">Download Braille Text</button>
+            <label for="cell-size">Adjust Braille Cell Size:</label>
+            <input type="range" id="cell-size" min="10" max="100" value="30">
+        </div>
+
+        <!-- Braille Output -->
+        <div class="braille-output" id="output-braille">
+            Braille Output
+        </div>
+    </div>
+
+    <script>
+        const textInput = document.getElementById('text-input');
+        const outputBraille = document.getElementById('output-braille');
+        const convertBtn = document.getElementById('convert-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const cellSizeInput = document.getElementById('cell-size');
+        const voiceBtn = document.getElementById('voice-btn');
+
+        let speechTimeout;
+
+        // Convert text to Braille
+        convertBtn.addEventListener('click', function () {
+            const text = textInput.value;
+            let brailleText = textToBraille(text);
+            outputBraille.innerHTML = brailleText;
+        });
+
+        // Download Braille text as a file
+        downloadBtn.addEventListener('click', function () {
+            const brailleText = outputBraille.innerText;
+            downloadBrailleFile(brailleText);
+        });
+
+        // Adjust Braille cell size
+        cellSizeInput.addEventListener('input', function () {
+            const newSize = `${this.value}px`;
+            outputBraille.style.setProperty('--cell-size', newSize);
+            updateBrailleOutput();
+        });
+
+        function updateBrailleOutput() {
+            const cells = outputBraille.querySelectorAll('span');
+            cells.forEach(cell => {
+                cell.style.fontSize = getComputedStyle(outputBraille).getPropertyValue('--cell-size');
+            });
+        }
+
+        // Voice input with visual feedback and timeout
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            voiceBtn.addEventListener('click', function () {
+                voiceBtn.classList.add('active');
+                voiceBtn.textContent = "Listening...";
+                recognition.start();
+            });
+
+            recognition.onresult = function (event) {
+                clearTimeout(speechTimeout);
+                const speechResult = event.results[0][0].transcript;
+                textInput.value += speechResult + ' ';
+            };
+
+            recognition.onspeechend = function () {
+                endVoiceRecognition();
+            };
+
+            recognition.onerror = function (event) {
+                endVoiceRecognition();
+                console.error('Speech recognition error detected: ' + event.error);
+                alert("Speech recognition error: " + event.error);
+            };
+
+            recognition.onend = function () {
+                endVoiceRecognition();
+            };
+
+            recognition.onstart = function () {
+                speechTimeout = setTimeout(() => {
+                    recognition.stop();
+                }, 5000); // 5 seconds timeout
+            };
+        } else {
+            alert("Sorry, your browser doesn't support the Web Speech API. Please use Google Chrome.");
+        }
+
+        function endVoiceRecognition() {
+            voiceBtn.classList.remove('active');
+            voiceBtn.textContent = "Start Voice Input";
+            clearTimeout(speechTimeout);
+        }
+
+        // Implement Braille conversion function (hardcoded for demonstration)
+        function textToBraille(text) {
+            const brailleMap = {
+                'a': '⠁', 'b': '⠃', 'c': '⠉', 'd': '⠙', 'e': '⠑', 'f': '⠋',
+                'g': '⠛', 'h': '⠓', 'i': '⠊', 'j': '⠚', 'k': '⠅', 'l': '⠇',
+                'm': '⠍', 'n': '⠝', 'o': '⠕', 'p': '⠏', 'q': '⠟', 'r': '⠗',
+                's': '⠎', 't': '⠞', 'u': '⠥', 'v': '⠧', 'w': '⠺', 'x': '⠭',
+                'y': '⠽', 'z': '⠵', ' ': ' '
+            };
+
+            return text.toLowerCase().split('').map(char => {
+                return `<span>${brailleMap[char] || ''}</span>`;
+            }).join('');
+        }
+
+        // Download Braille file function
+        function downloadBrailleFile(content) {
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'braille_output.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+
+</html>
+
